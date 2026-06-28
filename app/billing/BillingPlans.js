@@ -1,52 +1,8 @@
 "use client";
 
 import { useState } from "react";
-
-const plans = [
-  {
-    name: "Basic",
-    usdPrice: "$4.90",
-    approxInr: "₹449",
-    features: [
-      "Limited payment tracking",
-      "Email notifications",
-      "Basic Dashboard access",
-    ],
-    razorpayLink: "https://rzp.io/rzp/wVjd0Emj",
-    paypalLink: "https://www.paypal.com/ncp/payment/4G2NGAFWBYZ48",
-  },
-  {
-    name: "Professional",
-    usdPrice: "$9.90",
-    approxInr: "₹899",
-    features: [
-      "Unlimited payment tracking",
-      "Automated Webhook alerts",
-      "Priority Email alerts",
-      "Complete Dashboard access",
-    ],
-    featured: true,
-    razorpayLink: "https://rzp.io/rzp/ZPemaWLS",
-    paypalLink: "https://www.paypal.com/ncp/payment/PBD83KM93TGEJ",
-  },
-  {
-    name: "Ultimate",
-    usdPrice: "$14.90",
-    approxInr: "₹1399",
-    features: [
-      "Everything in Professional",
-      "Custom domain integrations",
-      "24/7 Dedicated Support",
-      "Advanced automation rules",
-    ],
-    razorpayLink: "https://rzp.io/rzp/lfz7DEQz",
-    paypalLink: "https://www.paypal.com/ncp/payment/XDLU8TPQGHW5Q",
-  },
-];
-
-function handleRedirect(link) {
-  window.location.href = link;
-}
+import { plans } from "./plans";
+import PaymentButton from "./PaymentButton";
 
 export default function BillingPlans() {
   const [currencyMode, setCurrencyMode] = useState("IN");
@@ -176,41 +132,12 @@ export default function BillingPlans() {
               ))}
             </ul>
 
-            {currencyMode === "IN" ? (
-              <button
-                type="button"
-                onClick={() => handleRedirect(plan.razorpayLink)}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  backgroundColor: plan.featured ? "#4f46e5" : "#111827",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Buy with Razorpay
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleRedirect(plan.paypalLink)}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  backgroundColor: "#ffc439",
-                  color: "#003087",
-                  border: "none",
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Buy with PayPal
-              </button>
-            )}
+            <PaymentButton
+              currencyMode={currencyMode}
+              razorpayLink={plan.razorpayLink}
+              paypalLink={plan.paypalLink}
+              featured={plan.featured}
+            />
           </div>
         ))}
       </div>
