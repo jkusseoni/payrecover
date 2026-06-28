@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Link } from "@/i18n/navigation";
 import { signIn, signInWithGoogle } from "@/lib/auth";
 
 function GoogleIcon() {
@@ -68,6 +69,19 @@ export default function Login() {
         margin: "0 auto",
       }}
     >
+      <Link
+        href="/"
+        style={{
+          display: "inline-block",
+          marginBottom: 24,
+          color: "#4f46e5",
+          textDecoration: "none",
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        ← Back to home
+      </Link>
       <h1 style={{ margin: "0 0 8px", fontSize: 28 }}>Login</h1>
       <p style={{ color: "#666", marginBottom: 24, lineHeight: 1.5 }}>
         Sign in to PayRecover with Google or a magic link sent to your email.

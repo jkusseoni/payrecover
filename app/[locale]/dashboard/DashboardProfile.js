@@ -1,42 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, Link } from "@/i18n/navigation";
-import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
+import { Link, useRouter } from "@/i18n/navigation";
 import { signOut } from "@/lib/auth";
 
-export default function DashboardProfile() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function DashboardProfile({ user }) {
   const router = useRouter();
-
-  useEffect(() => {
-    const getUserData = async () => {
-      const supabase = createBrowserSupabaseClient();
-      const {
-        data: { user: currentUser },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error || !currentUser) {
-        router.push("/login");
-      } else {
-        setUser(currentUser);
-      }
-      setLoading(false);
-    };
-
-    getUserData();
-  }, [router]);
 
   const handleLogout = async () => {
     await signOut();
     router.push("/login");
+    router.refresh();
   };
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Loading Dashboard...</div>;
-  }
 
   return (
     <>
@@ -45,6 +19,8 @@ export default function DashboardProfile() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
           backgroundColor: "#f4f4f5",
           padding: "16px 24px",
           borderRadius: 8,
@@ -54,15 +30,15 @@ export default function DashboardProfile() {
         <div>
           <h2 style={{ margin: 0, fontSize: 20 }}>Welcome Back!</h2>
           <p style={{ margin: "4px 0", color: "#71717a" }}>
-            <strong>Email:</strong> {user?.email}
+            <strong>Email:</strong> {user.email}
           </p>
-          {user?.user_metadata?.full_name && (
+          {user.fullName && (
             <p style={{ margin: "4px 0", color: "#71717a" }}>
-              <strong>Name:</strong> {user.user_metadata.full_name}
+              <strong>Name:</strong> {user.fullName}
             </p>
           )}
           <p style={{ margin: "4px 0", fontSize: 12, color: "#a1a1aa" }}>
-            <strong>User ID:</strong> {user?.id}
+            <strong>User ID:</strong> {user.id}
           </p>
         </div>
 

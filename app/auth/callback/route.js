@@ -5,7 +5,10 @@ import { routing } from "@/i18n/routing";
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const locale = routing.defaultLocale;
+  const localeCookie = request.cookies.get("NEXT_LOCALE")?.value;
+  const locale = routing.locales.includes(localeCookie)
+    ? localeCookie
+    : routing.defaultLocale;
   const next = searchParams.get("next") ?? `/${locale}/dashboard`;
 
   if (!code) {

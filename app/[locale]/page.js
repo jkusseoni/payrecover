@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
+import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
+import LogoutButton from "./LogoutButton";
 
 function hasSupabaseSessionCookie() {
   if (typeof document === "undefined") return false;
@@ -12,6 +14,18 @@ function hasSupabaseSessionCookie() {
     const name = entry.trim().split("=")[0];
     return name.startsWith("sb-");
   });
+}
+
+async function checkLoggedIn() {
+  try {
+    const supabase = createBrowserSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return Boolean(user);
+  } catch {
+    return hasSupabaseSessionCookie();
+  }
 }
 
 function CloseIcon() {
@@ -44,7 +58,7 @@ export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    setIsLoggedIn(hasSupabaseSessionCookie());
+    checkLoggedIn().then(setIsLoggedIn);
   }, []);
 
   useEffect(() => {
@@ -108,12 +122,15 @@ export default function LandingPage() {
               ))}
             </div>
             {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex h-10 items-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-              >
-                {t("dashboard")}
-              </Link>
+              <>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-10 items-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                >
+                  {t("dashboard")}
+                </Link>
+                <LogoutButton />
+              </>
             ) : (
               <>
                 <Link
@@ -192,13 +209,16 @@ export default function LandingPage() {
 
             <div className="mt-auto border-t border-slate-200 p-4">
               {isLoggedIn ? (
-                <Link
-                  href="/dashboard"
-                  onClick={closeMobile}
-                  className="flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  {t("dashboard")}
-                </Link>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/dashboard"
+                    onClick={closeMobile}
+                    className="flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    {t("dashboard")}
+                  </Link>
+                  <LogoutButton className="w-full" />
+                </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   <Link

@@ -1,8 +1,18 @@
+import { createServerClient } from "@supabase/ssr";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse } from "next/server";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
+
+function resolveSupabaseConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
+    /\/rest\/v1\/?$/,
+    ""
+  ).replace(/\/$/, "");
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  return { supabaseUrl, supabaseAnonKey };
+}
 
 function getLocaleAndPath(pathname) {
   const match = pathname.match(/^\/(en|hi)(\/.*)?$/);
@@ -22,28 +32,42 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  const intlResponse = intlMiddleware(request);
+  let response = intlMiddleware(request);
+  const { supabaseUrl, supabaseAnonKey } = resolveSupabaseConfig();
 
-  if (intlResponse.status >= 300 && intlResponse.status < 400) {
-    return intlResponse;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response;
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (response.status >= 300 && response.status < 400) {
+    return response;
   }
 
   const { locale, pathWithoutLocale } = getLocaleAndPath(pathname);
-  const hasSupabaseSession = request.cookies
-    .getAll()
-    .some((cookie) => cookie.name.startsWith("sb-"));
-
   const isProtectedRoute = pathWithoutLocale.startsWith("/dashboard");
 
-  if (!hasSupabaseSession && isProtectedRoute) {
+  if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
-  if (hasSupabaseSession && pathWithoutLocale === "/login") {
-    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
-  }
-
-  return intlResponse;
+  return response;
 }
 
 export const config = {
