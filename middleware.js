@@ -1,29 +1,32 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 
 export async function middleware(req) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const { pathname } = req.nextUrl
 
-  // एक्टिव सेशन चेक करें
-  const { data: { session } } = await supabase.auth.getSession()
+  // 1. सुपबेस लॉगिन होने पर ब्राउज़र में 'sb-access-token' या 'sb-auth-token' नाम की कुकी सेट करता है
+  // हम चेक करेंगे कि क्या इनमें से कोई भी कुकी मौजूद है
+  const allCookies = req.cookies.getAll()
+  const hasSupabaseSession = allCookies.some(cookie => cookie.name.startsWith('sb-'))
 
-  const { pathname } = req.nextUrl;
+  // 2. जिन पेजों को बिना लॉगिन के लॉक रखना है
+  const isProtectedRoute = pathname.startsWith('/dashboard') || 
+                           pathname.startsWith('/webhooks') || 
+                           pathname.startsWith('/billing')
 
-  // अगर यूजर लॉगिन नहीं है और अंदर के पेजों पर जाने की कोशिश कर रहे हैं
-  if (!session && (pathname.startsWith('/dashboard') || pathname.startsWith('/webhooks') || pathname.startsWith('/billing'))) {
+  // 3. अगर यूज़र लॉगिन नहीं है और प्रोटेक्टेड पेज खोलने की कोशिश करे -> /login पर भेजें
+  if (!hasSupabaseSession && isProtectedRoute) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  // अगर यूजर पहले से लॉगिन है और जबरदस्ती दोबारा /login पेज खोल रहा है
-  if (session && pathname === '/login') {
+  // 4. अगर यूज़र पहले से लॉगिन है और जबरदस्ती /login खोल रहा है -> /dashboard पर भेजें
+  if (hasSupabaseSession && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  return res
+  return NextResponse.next()
 }
 
-// यह मैच करना ज़रूरी है ताकि इन पेजों पर मिडलवेयर हमेशा ट्रिगर हो
+// यह मैच करना ज़रूरी है ताकि इन पेजों पर मिडलवेयर हमेशा एक्टिव रहे
 export const config = {
   matcher: ['/dashboard/:path*', '/webhooks/:path*', '/billing/:path*', '/login'],
 }
