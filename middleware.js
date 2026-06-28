@@ -1,43 +1,29 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
 
-export async function middleware(request) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function middleware(req) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
-    /\/rest\/v1\/?$/,
-    ""
-  ).replace(/\/$/, "");
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  // एक्टिव सेशन चेक करें
+  const { data: { session } } = await supabase.auth.getSession()
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return supabaseResponse;
+  const { pathname } = req.nextUrl;
+
+  // अगर यूजर लॉगिन नहीं है और अंदर के पेजों पर जाने की कोशिश कर रहे हैं
+  if (!session && (pathname.startsWith('/dashboard') || pathname.startsWith('/webhooks') || pathname.startsWith('/billing'))) {
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
+  // अगर यूजर पहले से लॉगिन है और जबरदस्ती दोबारा /login पेज खोल रहा है
+  if (session && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
 
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
+  return res
 }
 
+// यह मैच करना ज़रूरी है ताकि इन पेजों पर मिडलवेयर हमेशा ट्रिगर हो
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
-};
+  matcher: ['/dashboard/:path*', '/webhooks/:path*', '/billing/:path*', '/login'],
+}
