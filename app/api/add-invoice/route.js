@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getUser } from "@/lib/auth-server";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createInvoice } from "@/lib/create-invoice";
 import { createRazorpayPaymentLink } from "@/lib/create-razorpay-payment-link";
 import {
   getErrorMessage,
@@ -14,6 +16,11 @@ export async function POST(request) {
   }
 
   try {
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { client_name, client_email, amount, due_date } =
       await request.json();
 
@@ -24,6 +31,8 @@ export async function POST(request) {
       );
     }
 
+    const supabase = await createServerSupabaseClient();
+
     let { data: client, error: clientLookupError } = await supabase
       .from("clients")
       .select("id")
@@ -31,7 +40,9 @@ export async function POST(request) {
       .maybeSingle();
 
     if (clientLookupError) {
-      throw new Error(`Supabase client lookup failed: ${clientLookupError.message}`);
+      throw new Error(
+        `Supabase client lookup failed: ${clientLookupError.message}`
+      );
     }
 
     let clientId = client?.id;
@@ -43,34 +54,27 @@ export async function POST(request) {
           {
             name: client_name || client_email.split("@")[0],
             email: client_email,
+            user_id: user.id,
           },
         ])
         .select("id")
         .single();
 
       if (clientCreateError) {
-        throw new Error(`Supabase client create failed: ${clientCreateError.message}`);
+        throw new Error(
+          `Supabase client create failed: ${clientCreateError.message}`
+        );
       }
 
       clientId = newClient.id;
     }
 
-    const { data: invoice, error: invoiceError } = await supabase
-      .from("invoices")
-      .insert([
-        {
-          client_id: clientId,
-          amount: parseFloat(amount),
-          due_date,
-          status: "pending",
-        },
-      ])
-      .select("id")
-      .single();
-
-    if (invoiceError) {
-      throw new Error(`Supabase invoice insert failed: ${invoiceError.message}`);
-    }
+    const invoice = await createInvoice({
+      client_id: clientId,
+      amount: parseFloat(amount),
+      due_date,
+      status: "pending",
+    });
 
     let linkData;
     try {
@@ -110,6 +114,11 @@ export async function POST(request) {
     });
   } catch (error) {
     const message = getErrorMessage(error);
+
+    if (message === "Unauthorized") {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
     console.error("Invoice Setup Error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }

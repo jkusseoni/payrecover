@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getUser } from "@/lib/auth-server";
+import { fetchUserInvoices } from "@/lib/fetch-user-invoices";
 
 export async function GET() {
   try {
-    const { data: invoices, error } = await supabase
-      .from("invoices")
-      .select("amount, status, due_date");
+    const user = await getUser();
 
-    if (error) throw error;
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const invoices = await fetchUserInvoices();
 
     let expectedIncome = 0;
     let overdue = 0;
     const today = new Date();
 
-    for (const invoice of invoices ?? []) {
+    for (const invoice of invoices) {
       const amount = Number(invoice.amount) || 0;
 
       if (invoice.status !== "paid") {

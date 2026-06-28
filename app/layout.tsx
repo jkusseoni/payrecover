@@ -27,7 +27,30 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <main className="flex-1">{children}</main>
+        <footer
+          style={{
+            marginTop: "40px",
+            padding: "20px",
+            borderTop: "1px solid #eee",
+            textAlign: "center",
+            display: "flex",
+            gap: "20px",
+            justifyContent: "center",
+          }}
+        >
+          <a href="/terms" style={{ color: "#666", textDecoration: "none" }}>
+            Terms & Conditions
+          </a>
+          <a href="/privacy" style={{ color: "#666", textDecoration: "none" }}>
+            Privacy Policy
+          </a>
+          <a href="/refund" style={{ color: "#666", textDecoration: "none" }}>
+            Refund Policy
+          </a>
+        </footer>
+      </body>
     </html>
   );
 }
