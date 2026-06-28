@@ -3,6 +3,8 @@ import { getUser } from "@/lib/auth-server";
 import { checkSubscription } from "@/lib/subscription";
 import BillingPlans from "./BillingPlans";
 
+export const dynamic = "force-dynamic";
+
 export default async function BillingPage() {
   const user = await getUser();
 

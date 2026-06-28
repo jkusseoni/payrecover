@@ -4,6 +4,8 @@ import { checkSubscription } from "@/lib/subscription";
 import DashboardProfile from "./DashboardProfile";
 import DashboardStats from "./DashboardStats";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const user = await getUser();
 
