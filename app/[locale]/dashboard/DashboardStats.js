@@ -90,7 +90,7 @@ export default function DashboardStats() {
               color: "#14532d",
             }}
           >
-            ₹{stats.expectedIncome}
+            ${stats.expectedIncome}
           </p>
         </div>
 
@@ -112,7 +112,7 @@ export default function DashboardStats() {
               color: "#7f1d1d",
             }}
           >
-            ₹{stats.overdue}
+            ${stats.overdue}
           </p>
         </div>
       </div>
