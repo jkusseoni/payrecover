@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth-server";
+import { checkSubscription } from "@/lib/subscription";
 import DashboardStats from "./DashboardStats";
 
 export default async function DashboardPage() {
@@ -7,6 +8,12 @@ export default async function DashboardPage() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  const { isActive } = await checkSubscription();
+
+  if (!isActive) {
+    redirect("/billing");
   }
 
   return (
