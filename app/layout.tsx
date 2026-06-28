@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,45 +12,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "PayRecover",
-  description: "Track invoices, send reminders, and collect payments with Razorpay",
-};
-
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: ReactNode }>) {
   return (
     <html
-      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
-        <main className="flex-1">{children}</main>
-        <footer
-          style={{
-            marginTop: "40px",
-            padding: "20px",
-            borderTop: "1px solid #eee",
-            textAlign: "center",
-            display: "flex",
-            gap: "20px",
-            justifyContent: "center",
-          }}
-        >
-          <a href="/terms" style={{ color: "#666", textDecoration: "none" }}>
-            Terms & Conditions
-          </a>
-          <a href="/privacy" style={{ color: "#666", textDecoration: "none" }}>
-            Privacy Policy
-          </a>
-          <a href="/refund" style={{ color: "#666", textDecoration: "none" }}>
-            Refund Policy
-          </a>
-        </footer>
-      </body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

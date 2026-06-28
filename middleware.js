@@ -1,32 +1,57 @@
-import { NextResponse } from 'next/server'
+import createIntlMiddleware from "next-intl/middleware";
+import { NextResponse } from "next/server";
+import { routing } from "./i18n/routing";
 
-export async function middleware(req) {
-  const { pathname } = req.nextUrl
+const intlMiddleware = createIntlMiddleware(routing);
 
-  // 1. सुपबेस लॉगिन होने पर ब्राउज़र में 'sb-access-token' या 'sb-auth-token' नाम की कुकी सेट करता है
-  // हम चेक करेंगे कि क्या इनमें से कोई भी कुकी मौजूद है
-  const allCookies = req.cookies.getAll()
-  const hasSupabaseSession = allCookies.some(cookie => cookie.name.startsWith('sb-'))
+function getLocaleAndPath(pathname) {
+  const match = pathname.match(/^\/(en|hi)(\/.*)?$/);
+  if (!match) {
+    return { locale: routing.defaultLocale, pathWithoutLocale: pathname };
+  }
+  return {
+    locale: match[1],
+    pathWithoutLocale: match[2] || "/",
+  };
+}
 
-  // 2. जिन पेजों को बिना लॉगिन के लॉक रखना है
-  const isProtectedRoute = pathname.startsWith('/dashboard') || 
-                           pathname.startsWith('/webhooks') || 
-                           pathname.startsWith('/billing')
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-  // 3. अगर यूज़र लॉगिन नहीं है और प्रोटेक्टेड पेज खोलने की कोशिश करे -> /login पर भेजें
+  if (pathname.startsWith("/api") || pathname.startsWith("/auth")) {
+    return NextResponse.next();
+  }
+
+  const intlResponse = intlMiddleware(request);
+
+  if (intlResponse.status >= 300 && intlResponse.status < 400) {
+    return intlResponse;
+  }
+
+  const { locale, pathWithoutLocale } = getLocaleAndPath(pathname);
+  const hasSupabaseSession = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-"));
+
+  const isProtectedRoute =
+    pathWithoutLocale.startsWith("/dashboard") ||
+    pathWithoutLocale.startsWith("/billing");
+
   if (!hasSupabaseSession && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
-  // 4. अगर यूज़र पहले से लॉगिन है और जबरदस्ती /login खोल रहा है -> /dashboard पर भेजें
-  if (hasSupabaseSession && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  if (hasSupabaseSession && pathWithoutLocale === "/login") {
+    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
   }
 
-  return NextResponse.next()
+  return intlResponse;
 }
 
-// यह मैच करना ज़रूरी है ताकि इन पेजों पर मिडलवेयर हमेशा एक्टिव रहे
 export const config = {
-  matcher: ['/dashboard/:path*', '/webhooks/:path*', '/billing/:path*', '/login'],
-}
+  matcher: [
+    "/",
+    "/(en|hi)/:path*",
+    "/((?!api|auth|_next|_vercel|.*\\..*).*)",
+  ],
+};

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { getUser } from "@/lib/auth-server";
 import { checkSubscription } from "@/lib/subscription";
 import BillingPlans from "./BillingPlans";

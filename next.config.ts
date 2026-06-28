@@ -1,11 +1,13 @@
-import path from "path";
 import type { NextConfig } from "next";
+import path from "path";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.js");
 
 const nextConfig: NextConfig = {
   turbopack: {
-    // Prevent Next.js from picking the parent PayRecover folder as the workspace root
     root: path.resolve(__dirname),
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

@@ -1,13 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { routing } from "@/i18n/routing";
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const locale = routing.defaultLocale;
+  const next = searchParams.get("next") ?? `/${locale}/dashboard`;
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login`);
+    return NextResponse.redirect(`${origin}/${locale}/login`);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
@@ -35,7 +37,9 @@ export async function GET(request) {
 
   if (error) {
     console.error("Auth callback error:", error.message);
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
+    return NextResponse.redirect(
+      `${origin}/${locale}/login?error=auth_callback_failed`
+    );
   }
 
   return response;
