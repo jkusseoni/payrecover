@@ -1,85 +1,116 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import { createRazorpayPaymentLink } from "@/lib/create-razorpay-payment-link";
+import {
+  getErrorMessage,
+  validateInvoiceSetupEnv,
+} from "@/lib/validate-env";
 
 export async function POST(request) {
-  try {
-    const { client_name, client_email, amount, due_date } = await request.json();
+  const envCheck = validateInvoiceSetupEnv();
+  if (!envCheck.ok) {
+    console.error("Invoice Setup Error:", envCheck.error);
+    return NextResponse.json({ error: envCheck.error }, { status: 500 });
+  }
 
-    // 1. पहले चेक करें कि क्लाइंट 'clients' टेबल में मौजूद है या नहीं
-    let { data: client } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('email', client_email)
-      .single();
+  try {
+    const { client_name, client_email, amount, due_date } =
+      await request.json();
+
+    if (!client_email || !amount || !due_date) {
+      return NextResponse.json(
+        { error: "Missing required fields: client_email, amount, or due_date" },
+        { status: 400 }
+      );
+    }
+
+    let { data: client, error: clientLookupError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("email", client_email)
+      .maybeSingle();
+
+    if (clientLookupError) {
+      throw new Error(`Supabase client lookup failed: ${clientLookupError.message}`);
+    }
 
     let clientId = client?.id;
 
     if (!client) {
-      // अगर क्लाइंट नहीं है, तो नया क्लाइंट बनाएं (बग फिक्स: [0] इंडेक्स जोड़ा)
-      const { data: newClient, error: cErr } = await supabase
-        .from('clients')
-        .insert([{ name: client_name || client_email.split('@')[0], email: client_email }])
-        .select('id')
+      const { data: newClient, error: clientCreateError } = await supabase
+        .from("clients")
+        .insert([
+          {
+            name: client_name || client_email.split("@")[0],
+            email: client_email,
+          },
+        ])
+        .select("id")
         .single();
 
-      if (cErr) throw cErr;
+      if (clientCreateError) {
+        throw new Error(`Supabase client create failed: ${clientCreateError.message}`);
+      }
+
       clientId = newClient.id;
     }
 
-    // 2. इनवॉइस को 'pending' स्टेटस के साथ इंसर्ट करें ताकि 'invoice_id' जनरेट हो सके
-    const { data: invoice, error: iErr } = await supabase
-      .from('invoices')
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
       .insert([
         {
           client_id: clientId,
           amount: parseFloat(amount),
-          due_date: due_date,
-          status: 'pending'
-        }
+          due_date,
+          status: "pending",
+        },
       ])
-      .select('id')
+      .select("id")
       .single();
 
-    if (iErr) throw iErr;
+    if (invoiceError) {
+      throw new Error(`Supabase invoice insert failed: ${invoiceError.message}`);
+    }
 
-    // 3. 🔥 अपने 'create-payment-link' एंडपॉइंट को कॉल करें और 'invoice_id' पास करें
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    
-    const linkRes = await fetch(`${baseUrl}/api/create-payment-link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: amount,
+    let linkData;
+    try {
+      linkData = await createRazorpayPaymentLink({
+        amount,
         name: client_name,
         email: client_email,
-        invoice_id: invoice.id // वेबहुक के लिए सबसे महत्वपूर्ण
+        invoice_id: invoice.id,
+      });
+    } catch (paymentLinkError) {
+      console.error(
+        "Razorpay payment link error:",
+        getErrorMessage(paymentLinkError)
+      );
+      throw new Error(
+        `Payment link creation failed: ${getErrorMessage(paymentLinkError)}`
+      );
+    }
+
+    const { error: updateError } = await supabase
+      .from("invoices")
+      .update({
+        payment_link: linkData.link,
+        payment_link_id: linkData.link_id,
       })
-    });
+      .eq("id", invoice.id);
 
-    const linkData = await linkRes.json();
+    if (updateError) {
+      throw new Error(`Supabase invoice update failed: ${updateError.message}`);
+    }
 
-    if (!linkRes.ok) throw new Error(linkData.error || "Failed to create payment link");
-
-    // 4. 💾 🔥 पेमेंट लिंक (link) और लिंक आईडी (link_id) दोनों को एक साथ डेटाबेस में अपडेट करें
-    const { error: updateErr } = await supabase
-      .from('invoices')
-      .update({ 
-        payment_link: linkData.link, 
-        payment_link_id: linkData.link_id // 🎯 दोनों कॉलम अब एक साथ सेव हो रहे हैं
-      })
-      .eq('id', invoice.id);
-
-    if (updateErr) throw updateErr;
-
-    return NextResponse.json({ 
-      success: true, 
-      invoice_id: invoice.id, 
+    return NextResponse.json({
+      success: true,
+      invoice_id: invoice.id,
       payment_link: linkData.link,
-      payment_link_id: linkData.link_id
+      payment_link_id: linkData.link_id,
     });
-
   } catch (error) {
-    console.error("Invoice Setup Error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = getErrorMessage(error);
+    console.error("Invoice Setup Error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

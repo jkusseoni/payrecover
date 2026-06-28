@@ -2,23 +2,29 @@
 
 import { useEffect, useState } from "react";
 
-function formatError(error: unknown) {
+function formatError(error) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "message" in error) {
-    return String((error as { message: unknown }).message);
+    return String(error.message);
   }
   return "Failed to load dashboard stats";
 }
 
-export default function Dashboard() {
+export default function DashboardStats() {
   const [stats, setStats] = useState({ expectedIncome: 0, overdue: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         const res = await fetch("/api/dashboard-stats");
+        const contentType = res.headers.get("content-type") ?? "";
+
+        if (!contentType.includes("application/json")) {
+          throw new Error("Failed to load dashboard stats");
+        }
+
         const data = await res.json();
 
         if (!res.ok) {
@@ -47,25 +53,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1 style={{ margin: 0 }}>Dashboard</h1>
-        <a
-          href="/dashboard/webhooks"
-          style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            backgroundColor: "#18181b",
-            color: "white",
-            textDecoration: "none",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          Webhook Debug
-        </a>
-      </div>
-
+    <>
       {error && (
         <div
           style={{
@@ -128,6 +116,6 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
-    </div>
+    </>
   );
 }

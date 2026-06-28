@@ -10,6 +10,7 @@
     "cron": "node cron.js"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "dayjs": "^1.11.21",
     "moment-timezone": "^0.6.2",
