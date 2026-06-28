@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
 import { signOut } from "@/lib/auth";
 
@@ -67,7 +67,7 @@ export default function DashboardProfile() {
         </div>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <a
+          <Link
             href="/dashboard/webhooks"
             style={{
               padding: "8px 12px",
@@ -80,7 +80,7 @@ export default function DashboardProfile() {
             }}
           >
             Webhook Debug
-          </a>
+          </Link>
           <button
             type="button"
             onClick={handleLogout}

@@ -33,9 +33,7 @@ export async function middleware(request) {
     .getAll()
     .some((cookie) => cookie.name.startsWith("sb-"));
 
-  const isProtectedRoute =
-    pathWithoutLocale.startsWith("/dashboard") ||
-    pathWithoutLocale.startsWith("/billing");
+  const isProtectedRoute = pathWithoutLocale.startsWith("/dashboard");
 
   if (!hasSupabaseSession && isProtectedRoute) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));

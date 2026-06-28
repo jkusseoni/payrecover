@@ -31,9 +31,9 @@ function MenuIcon() {
 }
 
 const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "/billing", label: "Pricing" },
+  { href: "#features", label: "Features", external: true },
+  { href: "#how-it-works", label: "How it works", external: true },
+  { href: "/billing", label: "Pricing", external: false },
 ];
 
 export default function LandingPage() {
@@ -69,15 +69,25 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden items-center gap-8 md:flex">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -85,7 +95,7 @@ export default function LandingPage() {
               {routing.locales.map((loc) => (
                 <Link
                   key={loc}
-                  href={pathname}
+                  href={pathname || "/"}
                   locale={loc}
                   className={`rounded px-2 py-1 uppercase no-underline ${
                     locale === loc
@@ -157,16 +167,27 @@ export default function LandingPage() {
             </div>
 
             <nav className="flex flex-col gap-1 p-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobile}
-                  className="rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600"
-                >
-                  {link.label}
-                </a>
-              ))}
+              {navLinks.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobile}
+                    className="rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobile}
+                    className="rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600"
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </nav>
 
             <div className="mt-auto border-t border-slate-200 p-4">

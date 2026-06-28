@@ -1,4 +1,5 @@
-import { redirect } from "@/i18n/navigation";
+import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { getUser } from "@/lib/auth-server";
 import { checkSubscription } from "@/lib/subscription";
 import BillingPlans from "./BillingPlans";
@@ -6,16 +7,17 @@ import BillingPlans from "./BillingPlans";
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
+  const locale = await getLocale();
   const user = await getUser();
+  let plan = null;
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (user) {
+    const subscription = await checkSubscription();
+    plan = subscription.plan;
 
-  const { isActive, plan } = await checkSubscription();
-
-  if (isActive) {
-    redirect("/dashboard");
+    if (subscription.isActive) {
+      redirect(`/${locale}/dashboard`);
+    }
   }
 
   return (
@@ -43,8 +45,9 @@ export default async function BillingPage() {
             Choose a plan to unlock your dashboard
           </h1>
           <p style={{ margin: 0, color: "#71717a", fontSize: 16 }}>
-            Signed in as {user.email}
-            {plan ? ` · Current plan: ${plan} (inactive or expired)` : ""}
+            {user
+              ? `Signed in as ${user.email}${plan ? ` · Current plan: ${plan} (inactive or expired)` : ""}`
+              : "Sign in after payment to activate your subscription on your account."}
           </p>
         </div>
 
